@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handwritten Note Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Handwritten Note Analyzer</h1>
+        <p>Upload a student's note and provide a model answer to get performance scores.</p>
+        
+        <form id="analysis-form">
+            <div class="form-group">
+                <label for="noteImage">1. Upload Student's Note Image</label>
+                <input type="file" id="noteImage" name="noteImage" accept="image/*" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="referenceText">2. Enter Model Answer / Reference Text</label>
+                <textarea id="referenceText" name="referenceText" rows="8" placeholder="Type or paste the ideal answer here..." required></textarea>
+            </div>
+            
+            <button type="submit" id="submit-btn">Analyze Note</button>
+        </form>
+        
+        <div id="results" class="hidden">
+            <h2>Analysis Report</h2>
+            <div class="scores-container">
+                <div class="score-card">
+                    <h3>Focus & Clarity</h3>
+                    <p class="score" id="clarity-score">--/10</p>
+                    <small>Based on handwriting legibility.</small>
+                </div>
+                <div class="score-card">
+                    <h3>Content & Style</h3>
+                    <p class="score" id="content-score">--/10</p>
+                    <small>Based on semantic similarity to model answer.</small>
+                </div>
+            </div>
+            <div class="extracted-text">
+                <h3>Extracted Text</h3>
+                <p id="ocr-text">...</p>
+            </div>
+        </div>
+
+        <div id="loader" class="hidden">
+            <div class="spinner"></div>
+            <p>Analyzing... This may take a moment.</p>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('analysis-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const loader = document.getElementById('loader');
+        const resultsDiv = document.getElementById('results');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            loader.classList.remove('hidden');
+            resultsDiv.classList.add('hidden');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Analyzing...';
+
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    document.getElementById('clarity-score').textContent = data.focus_clarity_score + '/10';
+                    document.getElementById('content-score').textContent = data.content_style_score + '/10';
+                    document.getElementById('ocr-text').textContent = `"${data.ocr_extracted_text}"`;
+                    resultsDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                alert('An error occurred while communicating with the server.');
+                console.error('Fetch Error:', error);
+            } finally {
+                loader.classList.add('hidden');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Analyze Note';
+            }
+        });
+    </script>
+</body>
+</html>
